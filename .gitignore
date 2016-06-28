@@ -1,0 +1,6 @@
+terraform.tfvars
+do-key
+do-key.pub
+*.tfstate
+terraform.tfstate
+terraform.tfstate.backup
