@@ -90,7 +90,7 @@ resource "digitalocean_droplet" "node" {
       "export PATH=$PATH:/usr/bin",
       "service docker start",
       "docker run --restart=unless-stopped -d -h consul-agt${count.index} --name consul-agt${count.index} -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8302:8302 -p 8302:8302/udp -p 8400:8400 -p 8500:8500 -p 8600:8600/udp progrium/consul -rejoin -advertise ${self.ipv4_address_private} -join ${digitalocean_droplet.manager-primary.ipv4_address_private}",
-      "docker run -d swarm join --advertise=${self.ipv4_address_private}:2375 consul://${digitalocean_droplet.manager-primary.ipv4_address_private}:8500/",
+      "docker run -d swarm join --advertise=${self.ipv4_address_private}:2375 consul://${self.ipv4_address_private}:8500/",
       "docker run -d --name registrator-${count.index} -h registrator-${count.index} -v /var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://${digitalocean_droplet.manager-primary.ipv4_address_private}:8500"
     ]
   }
