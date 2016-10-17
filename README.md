@@ -38,3 +38,16 @@ Bring your own certificates
 ===========================
 
 Please your certificates in `certs/` using the naming scheme `swarm-primary` for your management node, `mgr0` through `mgrX` for management server replicas, and `node0` through `nodeX` for your Swarm nodes. The scripts will account for existing certificates and not create new ones.
+
+For example:
+
+```
+ca-key.pem
+ca.pem
+mgr2-cert.pem
+mgr2-priv-key.pem
+node3-cert.pem
+node3-priv-key.pem
+swarm-primary-cert.pem
+swarm-primary-priv-key.pem
+```
