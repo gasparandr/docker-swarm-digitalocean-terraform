@@ -1,4 +1,9 @@
-variable "do_token" {}
+variable "deployment_do_token" {
+  description = "Read-Write API token used with Terraform to deploy your droplets."
+}
+variable "readonly_do_token" {
+  description = "Read-Only DigitalOcean Token for use with Droplan (https://github.com/tam7t/droplan)"
+}
 variable "pub_key" {}
 variable "pvt_key" {}
 variable "ssh_fingerprint" {}
@@ -8,7 +13,7 @@ variable "master_replica_count" {}
 variable "node_count" {}
 
 provider "digitalocean" {
-  token = "${var.do_token}"
+  token = "${var.deployment_do_token}"
 }
 
 resource "digitalocean_droplet" "manager-primary" {
@@ -29,8 +34,8 @@ resource "digitalocean_droplet" "manager-primary" {
   }
   provisioner "remote-exec" {
     inline = [
-      "export PATH=$PATH:/usr/bin",
-      "service docker start",
+      "apt-get update && apt-get install unzip -y && wget https://github.com/tam7t/droplan/releases/download/v1.2.0/droplan_1.2.0_linux_amd64.zip && unzip droplan_1.2.0_linux_amd64.zip && chmod +x droplan && mv droplan /usr/local/bin/droplan",
+      "(crontab -l 2>/dev/null; echo \"*/5 * * * * root PATH=/sbin DO_KEY=${var.readonly_do_token} /usr/local/bin/droplan >/var/log/droplan.log 2>&1\") | crontab -",
       "docker run --restart=unless-stopped -d -h consul0 --name consul0 -v /mnt:/data -p ${self.ipv4_address_private}:8300:8300 -p ${self.ipv4_address_private}:8301:8301 -p ${self.ipv4_address_private}:8301:8301/udp -p ${self.ipv4_address_private}:8302:8302 -p ${self.ipv4_address_private}:8302:8302/udp -p ${self.ipv4_address_private}:8400:8400 -p ${self.ipv4_address_private}:8500:8500 -p 172.17.0.1:53:53/udp progrium/consul -server -advertise ${self.ipv4_address_private} -bootstrap-expect 3",
       "docker run --restart=unless-stopped -h mgr00 --name mgr00 -d -p 3375:2375 swarm manage --replication --advertise ${self.ipv4_address_private}:3375 consul://${self.ipv4_address_private}:8500/",
       "docker run -d --name registrator-00 -h registrator-00 -v /var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://${self.ipv4_address_private}:8500"
@@ -58,8 +63,8 @@ resource "digitalocean_droplet" "manager-replica" {
   count         = "${var.master_replica_count}"
   provisioner "remote-exec" {
     inline = [
-      "export PATH=$PATH:/usr/bin",
-      "service docker start",
+      "apt-get update && apt-get install unzip -y && wget https://github.com/tam7t/droplan/releases/download/v1.2.0/droplan_1.2.0_linux_amd64.zip && unzip droplan_1.2.0_linux_amd64.zip && chmod +x droplan && mv droplan /usr/local/bin/droplan",
+      "(crontab -l 2>/dev/null; echo \"*/5 * * * * root PATH=/sbin DO_KEY=${var.readonly_do_token} /usr/local/bin/droplan >/var/log/droplan.log 2>&1\") | crontab -",
       "docker run --restart=unless-stopped -d -h consul${count.index + 1} --name consul${count.index  + 1} -v /mnt:/data -p ${self.ipv4_address_private}:8300:8300 -p ${self.ipv4_address_private}:8301:8301 -p ${self.ipv4_address_private}:8301:8301/udp -p ${self.ipv4_address_private}:8302:8302 -p ${self.ipv4_address_private}:8302:8302/udp -p ${self.ipv4_address_private}:8400:8400 -p ${self.ipv4_address_private}:8500:8500 -p 172.17.0.1:53:53/udp progrium/consul -server -advertise ${self.ipv4_address_private} -join ${digitalocean_droplet.manager-primary.ipv4_address_private}",
       "docker run --restart=unless-stopped -h mgr${count.index + 1} --name mgr${count.index +1} -d -p 3375:2375 swarm manage --replication --advertise ${self.ipv4_address_private}:3375 consul://${self.ipv4_address_private}:8500/",
       "docker run -d --name registrator-${count.index +1} -h registrator-${count.index + 1} -v /var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://${digitalocean_droplet.manager-primary.ipv4_address_private}:8500"
@@ -87,6 +92,8 @@ resource "digitalocean_droplet" "node" {
   count         = "${var.node_count}"
   provisioner "remote-exec" {
     inline = [
+      "apt-get update && apt-get install unzip -y && wget https://github.com/tam7t/droplan/releases/download/v1.2.0/droplan_1.2.0_linux_amd64.zip && unzip droplan_1.2.0_linux_amd64.zip && chmod +x droplan && mv droplan /usr/local/bin/droplan",
+      "(crontab -l 2>/dev/null; echo \"*/5 * * * * root PATH=/sbin DO_KEY=${var.readonly_do_token} /usr/local/bin/droplan >/var/log/droplan.log 2>&1\") | crontab -",
       "sed -i 's/DOCKER_OPTS/#DOCKER_OPTS/g' /etc/default/docker && echo 'DOCKER_OPTS=\"--dns 8.8.8.8 --dns 8.8.4.4 -H tcp://${self.ipv4_address_private}:4243 -H unix:///var/run/docker.sock\"' >> /etc/default/docker",
       "service docker restart",
       "docker run --restart=unless-stopped -d -h consul-agt${count.index} --name consul-agt${count.index} -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8302:8302 -p 8302:8302/udp -p 8400:8400 -p 8500:8500 -p 8600:8600/udp progrium/consul -rejoin -advertise ${self.ipv4_address_private} -join ${digitalocean_droplet.manager-primary.ipv4_address_private}",
