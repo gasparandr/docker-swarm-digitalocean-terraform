@@ -1,7 +1,7 @@
 Docker Swarm on DigitalOcean
 ============================
 
-Deploys a Docker Swarm cluster with TLS and secured Docker network via (Droplan)[https://github.com/tam7t/droplan].
+Deploys a Docker Swarm cluster with TLS and secured Docker network via [Droplan](https://github.com/tam7t/droplan).
 
 Usage
 =====
