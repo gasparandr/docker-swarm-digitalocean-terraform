@@ -10,7 +10,7 @@ generate_swarm_certs () {
 	type openssl >/dev/null 2>&1 || { echo >&2 "OpenSSL is required on your local machine to generate the CA."; exit 1; } && \
 	openssl genrsa -out certs/swarm-primary-priv-key.pem 2048 && \
 	openssl req -new -key certs/swarm-primary-priv-key.pem -out certs/swarm-primary.csr -subj "/CN=swarm" && \
-  openssl x509 -req -days 1825 -in certs/swarm-primary.csr -CA certs/ca.pem -CAkey certs/ca-key.pem -CAcreateserial -out certs/swarm-primary-cert.pem -extensions v3_req -extfile tmp/swarm_openssl.cnf
+  openssl x509 -req -days 1825 -in certs/swarm-primary.csr -CA certs/ca.pem -CAkey certs/ca-key.pem -CAcreateserial -out certs/swarm-primary-cert.pem -extensions v3_req 
 }
 
 if [ -f certs/swarm-cert.pem ]; then
